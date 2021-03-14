@@ -22,6 +22,8 @@ library(dismo)
 library(ggvoronoi)
 library(zoo)
 library(DT)
+library(dplyr)
+library(rgeos)
 library(lubridate)
 
 #Datos
@@ -912,9 +914,9 @@ server <- function(input, output) {
         lims<-match(as.POSIXct(x2),datos_estaciones$Fecha)
         
         # Nuevo dataframe 
-        datos_filtrados <- datos_estaciones[((limi+300):(lims+300)),]
+        datos_filtrados <- datos_estaciones[(limi:lims),]
         
-        # Promedio de cada estacion
+        # Suma de cada estacion
         datos_promedio<-c()
         for (i in 1:14){
             datos_promedio[i]<-c(sum(datos_filtrados[,i+1]))
@@ -946,17 +948,18 @@ server <- function(input, output) {
         grid<-as(raster_un,"SpatialPixels")
         griddf<-as.data.frame(grid)
         
+        # Mapeo inicial del Grid
+        grid_plot<-ggplot()+
+            geom_point(data=griddf, aes(x=x, y=y),shape=3, size=0.5)+
+            geom_point(data=data_shape, aes(x=x_cord,y=y_cord),
+                       color="red")+
+            theme_bw()
+        
         #Se crea un dataframe con coordenadas y promedio
         puntos_espa <- data.frame(x_cord=data_shape$x_cord,y_cord=data_shape$y_cord,promedios=data_shape$promedios)
         pts=puntos_espa
         coordinates(pts)<- ~x_cord + y_cord
         proj4string(pts)<- proj4string(grid)
-        
-        #Creacion de los poligonos de voronoi
-        voronoi_map <- voronoi(pts,grid)
-        
-        #Intersecto entre el vector de la UNAL, con el generado de los poligonos de Voronoi
-        mapa_voronoi=intersect(shape_un,voronoi_map)
         
         #Creacion de los poligonos de voronoi
         voronoi_map <- voronoi(pts,grid)
@@ -977,8 +980,7 @@ server <- function(input, output) {
             annotate("text", x = min(data_shape$x_cord), 
                      y = min(data_shape$y_cord), 
                      label = paste0("P Promedio= ",round(pvoronoi_mapdf,2),"mm"), 
-                     hjust = -0.08, size = 3)  
-        
+                     hjust = -0.08, size = 3) 
         
     
     })
@@ -1188,4 +1190,3 @@ server <- function(input, output) {
 
 # Run the application 
 shinyApp(ui = ui, server = server)
-
