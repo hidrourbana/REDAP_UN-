@@ -316,7 +316,7 @@ ui <- dashboardPage(
                                         inputId = "date4",
                                         label ="Fecha",
                                         start = "2007-10-08 00:00:00",
-                                        end = "2007-10-10 00:00:00",
+                                        end = "2007-11-08 00:00:00",
                                         format = "yyyy/mm/dd",
                                         separator = " - ",
                                         min = min(datos_estaciones$Fecha),
@@ -346,7 +346,7 @@ ui <- dashboardPage(
                                     
                                     selectInput(
                                         inputId = "var6",
-                                        label= "Duracion de tormenta (minutos)",
+                                        label= "Duracion minima de tormenta (minutos)",
                                         choices= c("15 minutos"=15,
                                                    "30 Minutos"=30,
                                                    "45 minutos"=45,
@@ -384,14 +384,20 @@ ui <- dashboardPage(
                 
                 
                 fluidRow(width=12,
-                         column(width = 12, offset = 2,
-                                box(width=8,
+                         column(width = 12, offset = 1,
+                                box(width=6,
                                     title="Hietograma",
                                     status="primary",
                                     solidHeader = TRUE,
                                     plotOutput("plot5"),
                                     align="center"
-                                )
+                                ),
+                                tabBox(width=4,
+                                       title="Boxplots",
+                                       id="tabset3",
+                                       tabPanel("Precipitacion",plotOutput("plot6",height = "500px")),
+                                       tabPanel("Hora Inicio",plotOutput("plot7",height = "500px"))
+                                       )
                          )
                 )
             
@@ -942,6 +948,7 @@ server <- function(input, output) {
                             "Gene",
                             "Gene")
         
+        
         ## Generacion de la interpolacion ##
         
         # Creacion de un grid
@@ -970,11 +977,11 @@ server <- function(input, output) {
         #grafico del mapa de Voronoi
         
         ggplot(data=data_shape, aes(x=x_cord,y=y_cord,fill=promedios)) +
-            scale_fill_gradient(low="skyblue", high = "darkblue", name="Precipitación (mm)", position="right")+
+            scale_fill_gradient(low="skyblue", high = "darkblue", name="PrecipitaciÃ³n (mm)", position="right")+
             geom_voronoi(outline=shape_un)+
             geom_point(data=data_shape, aes(x=x_cord,y=y_cord),shape=4)+
             geom_text(aes(label=data_shape$alias),hjust=0, vjust=0, size=3,check_overlap = TRUE)+
-            labs(x="Longitud",y="Latitud", title ="Polígonos de Thiessen")+
+            labs(x="Longitud",y="Latitud", title ="PolÃ­gonos de Thiessen")+
             theme_classic()+
             theme(plot.title=element_text(face = "bold", size = 15, hjust = 0.5))+
             annotate("text", x = min(data_shape$x_cord), 
@@ -1011,13 +1018,13 @@ server <- function(input, output) {
         d<-colm3
         e<-colm4
         
-        # Devuelve en el vector index la posición de los elementos que satisfacen la condición
+        # Devuelve en el vector index la posiciÃ³n de los elementos que satisfacen la condiciÃ³n
         index <- which(prueba[,2] > d)
         
-        # Cuenta el número de elementos que cumple la condicion anterior (longitud del vector)
+        # Cuenta el nÃºmero de elementos que cumple la condicion anterior (longitud del vector)
         vindex <- length(index)
         
-        # Definición de variable que determina cuantas tormentas tienen una duración por encima de x tiempo (x=15)
+        # DefiniciÃ³n de variable que determina cuantas tormentas tienen una duraciÃ³n por encima de x tiempo (x=15)
         
         matches<-c()
         a<-0
@@ -1027,7 +1034,7 @@ server <- function(input, output) {
             matches[a]<-c(1)
         }
         
-        # Para cada reinicio de secuencia de numeros evalúa si los x siguientes numeros son una secuencia o no
+        # Para cada reinicio de secuencia de numeros evalÃºa si los x siguientes numeros son una secuencia o no
         
         for (i in (2:(vindex-t))){
             if ((index[i]>(index[i-1]+e))){
@@ -1113,13 +1120,13 @@ server <- function(input, output) {
         e<-colm4t
         
         
-        # Devuelve en el vector index la posición de los elementos que satisfacen la condición
+        # Devuelve en el vector index la posiciÃ³n de los elementos que satisfacen la condiciÃ³n
         index <- which(prueba[,2] > d)
         
-        # Cuenta el número de elementos que cumple la condicion anterior (longitud del vector)
+        # Cuenta el nÃºmero de elementos que cumple la condicion anterior (longitud del vector)
         vindex <- length(index)
         
-        # Definición de variable que determina cuantas tormentas tienen una duración por encima de x tiempo (x=15)
+        # DefiniciÃ³n de variable que determina cuantas tormentas tienen una duraciÃ³n por encima de x tiempo (x=15)
         
         matches<-c()
         a<-0
@@ -1129,7 +1136,7 @@ server <- function(input, output) {
             matches[a]<-c(1)
         }
         
-        # Para cada reinicio de secuencia de numeros evalúa si los x siguientes numeros son una secuencia o no
+        # Para cada reinicio de secuencia de numeros evalÃºa si los x siguientes numeros son una secuencia o no
         
         for (i in (2:(vindex-t))){
             if ((index[i]>(index[i-1]+e))){
@@ -1181,12 +1188,265 @@ server <- function(input, output) {
                                  "Dia"=as_date(fechas),
                                  "Hora"=strftime(fechas, format="%H:%M"))
         
+        a3<-0
+        matches3<-c()
+        for (i in 1:nrow(df_tormentas)) {
+            seleccion<-which(as_date(graf_tormentas$Fecha)==df_tormentas$Dia[i])
+            seleccion_tor<-graf_tormentas[c(seleccion),]
+            suma_tormenta<-sum(seleccion_tor[,2])
+            a3=a3+1
+            matches3[a3]<-suma_tormenta
+            
+        }
+        
+        df_tormentas<-data.frame("No.Tormenta"=(1:length(fechas)),
+                                 "Dia"=as_date(fechas),
+                                 "Hora"=strftime(fechas, format="%H:%M"),
+                                 "Precip (mm)"=round(matches3,3))
+        
         
     })
     
+    # Boxplot lluvia
     
+    output$plot6<- renderPlot({
+        
+        x1t=as.POSIXct(input$date4[1])
+        x2t=as.POSIXct(input$date4[2])
+        
+        colm1t<-as.numeric(input$var5)
+        colm2t<-as.numeric(input$var6)
+        colm3t<-as.numeric(input$num)
+        colm4t<-as.numeric(input$inter)
+        
+        
+        limit=match(as.POSIXct(x1t),datos_estaciones$Fecha)
+        limst=match(as.POSIXct(x2t),datos_estaciones$Fecha)
+        
+        
+        
+        prueba <- datos_estaciones[(limit):(limst),c(1,(1+colm1t))]
+        
+        # Duracion
+        t<-colm2t
+        d<-colm3t
+        e<-colm4t
+        
+        
+        # Devuelve en el vector index la posiciÃ³n de los elementos que satisfacen la condiciÃ³n
+        index <- which(prueba[,2] > d)
+        
+        # Cuenta el nÃºmero de elementos que cumple la condicion anterior (longitud del vector)
+        vindex <- length(index)
+        
+        # DefiniciÃ³n de variable que determina cuantas tormentas tienen una duraciÃ³n por encima de x tiempo (x=15)
+        
+        matches<-c()
+        a<-0
+        # Conteo de la primera secuencia del vector index
+        if (vindex[1]!=0){
+            a=a+1
+            matches[a]<-c(1)
+        }
+        
+        # Para cada reinicio de secuencia de numeros evalÃºa si los x siguientes numeros son una secuencia o no
+        
+        for (i in (2:(vindex-t))){
+            if ((index[i]>(index[i-1]+e))){
+                a=a+1
+                matches[a]<-c(i) 
+            }
+        }
+        
+        a2<-0
+        matches2<-c()
+        for (i in (1:(vindex-1))){
+            if ((index[i]<(index[i+1]-e))){
+                a2 = a2+1
+                matches2[a2]<-c(i)
+            }
+        }
+        
+        if (index[vindex]==(index[vindex-t]+t)){
+            matches2[length(matches2)+1]<-vindex
+        }
+        
+        matches_index<-index[c(matches)]
+        matches2_index<-index[c(matches2)]
+        tormenta_inicio<-prueba[c(matches_index),]
+        tormenta_final<-prueba[c(matches2_index),]
+        vtormenta<-nrow(tormenta_inicio)
+        fechas<-prueba[c(matches_index),1]
+        
+        tormenta<-as.POSIXct(c())
+        
+        c2<-0
+        tormenta_cumple<-c()
+        for (i in 1:vtormenta) {
+            if (matches2[i]-matches[i]>t){
+                tormenta[matches_index[i]:matches2_index[i]]<-prueba[matches_index[i]:matches2_index[i],1]
+                c2=c2+1
+                tormenta_cumple[c2]<-c(i)
+            }
+        }
+        
+        tormenta<- na.omit(tormenta)
+        
+        graf_tormentas<-prueba[c(match(tormenta,prueba$Fecha)),]
+        
+        
+        fechas<-fechas[c(tormenta_cumple)]
+        
+        df_tormentas<-data.frame("No.Tormenta"=(1:length(fechas)),
+                                 "Dia"=as_date(fechas),
+                                 "Hora"=strftime(fechas, format="%H:%M"))
+        
+        a3<-0
+        matches3<-c()
+        for (i in 1:nrow(df_tormentas)) {
+            seleccion<-which(as_date(graf_tormentas$Fecha)==df_tormentas$Dia[i])
+            seleccion_tor<-graf_tormentas[c(seleccion),]
+            suma_tormenta<-sum(seleccion_tor[,2])
+            a3=a3+1
+            matches3[a3]<-suma_tormenta
+            
+        }
+        
+        df_tormentas<-data.frame("No.Tormenta"=(1:length(fechas)),
+                                 "Dia"=as_date(fechas),
+                                 "Hora"=strftime(fechas, format="%H:%M"),
+                                 "Precip (mm)"=round(matches3,3))
+        
+        boxplot(df_tormentas$Precip..mm.,
+                ylab="Precipitacion (mm)")
+        title(main="Boxplot Precipitacion")
+        
+        
+    })
+    
+    # Boxplot hora
+    
+    output$plot7<- renderPlot({
+        
+        x1t=as.POSIXct(input$date4[1])
+        x2t=as.POSIXct(input$date4[2])
+        
+        colm1t<-as.numeric(input$var5)
+        colm2t<-as.numeric(input$var6)
+        colm3t<-as.numeric(input$num)
+        colm4t<-as.numeric(input$inter)
+        
+        
+        limit=match(as.POSIXct(x1t),datos_estaciones$Fecha)
+        limst=match(as.POSIXct(x2t),datos_estaciones$Fecha)
+        
+        
+        
+        prueba <- datos_estaciones[(limit):(limst),c(1,(1+colm1t))]
+        
+        # Duracion
+        t<-colm2t
+        d<-colm3t
+        e<-colm4t
+        
+        
+        # Devuelve en el vector index la posiciÃ³n de los elementos que satisfacen la condiciÃ³n
+        index <- which(prueba[,2] > d)
+        
+        # Cuenta el nÃºmero de elementos que cumple la condicion anterior (longitud del vector)
+        vindex <- length(index)
+        
+        # DefiniciÃ³n de variable que determina cuantas tormentas tienen una duraciÃ³n por encima de x tiempo (x=15)
+        
+        matches<-c()
+        a<-0
+        # Conteo de la primera secuencia del vector index
+        if (vindex[1]!=0){
+            a=a+1
+            matches[a]<-c(1)
+        }
+        
+        # Para cada reinicio de secuencia de numeros evalÃºa si los x siguientes numeros son una secuencia o no
+        
+        for (i in (2:(vindex-t))){
+            if ((index[i]>(index[i-1]+e))){
+                a=a+1
+                matches[a]<-c(i) 
+            }
+        }
+        
+        a2<-0
+        matches2<-c()
+        for (i in (1:(vindex-1))){
+            if ((index[i]<(index[i+1]-e))){
+                a2 = a2+1
+                matches2[a2]<-c(i)
+            }
+        }
+        
+        if (index[vindex]==(index[vindex-t]+t)){
+            matches2[length(matches2)+1]<-vindex
+        }
+        
+        matches_index<-index[c(matches)]
+        matches2_index<-index[c(matches2)]
+        tormenta_inicio<-prueba[c(matches_index),]
+        tormenta_final<-prueba[c(matches2_index),]
+        vtormenta<-nrow(tormenta_inicio)
+        fechas<-prueba[c(matches_index),1]
+        
+        tormenta<-as.POSIXct(c())
+        
+        c2<-0
+        tormenta_cumple<-c()
+        for (i in 1:vtormenta) {
+            if (matches2[i]-matches[i]>t){
+                tormenta[matches_index[i]:matches2_index[i]]<-prueba[matches_index[i]:matches2_index[i],1]
+                c2=c2+1
+                tormenta_cumple[c2]<-c(i)
+            }
+        }
+        
+        tormenta<- na.omit(tormenta)
+        
+        graf_tormentas<-prueba[c(match(tormenta,prueba$Fecha)),]
+        
+        
+        fechas<-fechas[c(tormenta_cumple)]
+        
+        df_tormentas<-data.frame("No.Tormenta"=(1:length(fechas)),
+                                 "Dia"=as_date(fechas),
+                                 "Hora"=strftime(fechas, format="%H:%M"))
+        
+        a3<-0
+        matches3<-c()
+        for (i in 1:nrow(df_tormentas)) {
+            seleccion<-which(as_date(graf_tormentas$Fecha)==df_tormentas$Dia[i])
+            seleccion_tor<-graf_tormentas[c(seleccion),]
+            suma_tormenta<-sum(seleccion_tor[,2])
+            a3=a3+1
+            matches3[a3]<-suma_tormenta
+            
+        }
+        
+        df_tormentas<-data.frame("No.Tormenta"=(1:length(fechas)),
+                                 "Dia"=as_date(fechas),
+                                 "Hora"=strftime(fechas, format="%H:%M"),
+                                 "Precip (mm)"=round(matches3,3))
+        
+        horas_boxplot<-as.POSIXct(df_tormentas$Hora, format ="%H:%M" )
+        horas_boxplot_f<-hour(horas_boxplot)+minute(horas_boxplot)/60
+        
+        
+        boxplot(horas_boxplot_f,
+                ylab="Hora")
+        title(main="Boxplot Hora")
+        
+    })
 }
 
 
 # Run the application 
 shinyApp(ui = ui, server = server)
+
+
